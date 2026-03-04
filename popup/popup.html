@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <link rel="stylesheet" href="popup.css">
+</head>
+<body>
+  <div class="popup-container">
+    <div class="popup-header">
+      <img src="../icons/icon48.png" alt="" class="popup-logo">
+      <div>
+        <h1>CatanSight</h1>
+        <p class="popup-subtitle">Strategic overlays for colonist.io</p>
+      </div>
+    </div>
+
+    <div class="popup-status" id="status">
+      <span class="status-dot"></span>
+      <span class="status-text">Checking...</span>
+    </div>
+
+    <div class="popup-section">
+      <div class="section-header">
+        <span>Features</span>
+        <div class="quick-buttons">
+          <button class="btn-quick" id="btn-all-on" title="Enable all">All On</button>
+          <button class="btn-quick" id="btn-all-off" title="Disable all">All Off</button>
+        </div>
+      </div>
+
+      <label class="toggle-row">
+        <div class="toggle-info">
+          <span class="toggle-label">Pip Overlay</span>
+          <span class="toggle-desc">Show pip counts at intersections</span>
+        </div>
+        <input type="checkbox" id="toggle-pipOverlay" class="toggle-input">
+        <span class="toggle-slider"></span>
+      </label>
+
+      <label class="toggle-row">
+        <div class="toggle-info">
+          <span class="toggle-label">Resource Scarcity</span>
+          <span class="toggle-desc">Board-wide resource analysis</span>
+        </div>
+        <input type="checkbox" id="toggle-scarcityPanel" class="toggle-input">
+        <span class="toggle-slider"></span>
+      </label>
+
+      <label class="toggle-row">
+        <div class="toggle-info">
+          <span class="toggle-label">Dice Tracker</span>
+          <span class="toggle-desc">Roll histogram &amp; hot/cold numbers</span>
+        </div>
+        <input type="checkbox" id="toggle-diceTracker" class="toggle-input">
+        <span class="toggle-slider"></span>
+      </label>
+
+      <label class="toggle-row">
+        <div class="toggle-info">
+          <span class="toggle-label">Resource Income</span>
+          <span class="toggle-desc">Per-player resource tracking</span>
+        </div>
+        <input type="checkbox" id="toggle-resourceTracker" class="toggle-input">
+        <span class="toggle-slider"></span>
+      </label>
+
+      <label class="toggle-row">
+        <div class="toggle-info">
+          <span class="toggle-label">Port Proximity</span>
+          <span class="toggle-desc">Nearby port indicators</span>
+        </div>
+        <input type="checkbox" id="toggle-portProximity" class="toggle-input">
+        <span class="toggle-slider"></span>
+      </label>
+    </div>
+
+    <div class="popup-section">
+      <div class="section-header">
+        <span>Overlay Opacity</span>
+        <span class="opacity-value" id="opacity-value">90%</span>
+      </div>
+      <input type="range" id="opacity-slider" class="opacity-slider" min="20" max="100" value="90">
+    </div>
+
+    <div class="popup-footer">
+      <span class="shortcut-hint">Alt+P: Toggle pips &middot; Alt+S: Toggle panels</span>
+    </div>
+  </div>
+
+  <script src="popup.js"></script>
+</body>
+</html>

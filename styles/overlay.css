@@ -1,0 +1,414 @@
+/* ═══════════════════════════════════════════════════════════
+   CatanSight - Overlay Styles
+   All classes prefixed with catansight- to avoid conflicts
+   ═══════════════════════════════════════════════════════════ */
+
+/* ── Overlay Container ── */
+
+.catansight-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+  z-index: 10000;
+  transition: opacity 0.2s ease;
+}
+
+.catansight-overlay.catansight-hidden {
+  opacity: 0 !important;
+  pointer-events: none !important;
+}
+
+/* ── Pip Badges ── */
+
+.catansight-pip-badge {
+  position: absolute;
+  transform: translate(-50%, -50%);
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  font-size: 11px;
+  font-weight: 700;
+  color: #fff;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.6);
+  pointer-events: auto;
+  cursor: default;
+  border: 1.5px solid rgba(255, 255, 255, 0.45);
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.35);
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+.catansight-pip-badge:hover {
+  transform: translate(-50%, -50%) scale(1.25);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.5);
+  z-index: 10;
+}
+
+/* Tier colors */
+.catansight-tier-excellent {
+  background: #16a34a;
+  border-color: rgba(255, 255, 255, 0.55);
+}
+
+.catansight-tier-good {
+  background: #2563eb;
+  border-color: rgba(255, 255, 255, 0.5);
+}
+
+.catansight-tier-average {
+  background: #ca8a04;
+  color: #fff;
+  border-color: rgba(255, 255, 255, 0.4);
+}
+
+.catansight-tier-poor {
+  background: #dc2626;
+  border-color: rgba(255, 255, 255, 0.4);
+}
+
+/* ── Tooltip ── */
+
+.catansight-tooltip {
+  position: fixed;
+  z-index: 10002;
+  background: rgba(18, 18, 32, 0.95);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 8px;
+  padding: 10px 14px;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  font-size: 12px;
+  color: #e0e0e8;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.5);
+  pointer-events: none;
+  max-width: 220px;
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+}
+
+.catansight-tooltip-total {
+  font-size: 14px;
+  font-weight: 700;
+  color: #fff;
+  margin-bottom: 4px;
+}
+
+.catansight-tooltip-divider {
+  height: 1px;
+  background: rgba(255, 255, 255, 0.1);
+  margin: 6px 0;
+}
+
+.catansight-tooltip-row {
+  padding: 2px 0;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.catansight-tooltip-pips {
+  color: #8888a0;
+  margin-left: auto;
+}
+
+/* ── Side Panels Container ── */
+
+.catansight-panels-container {
+  position: fixed;
+  top: 80px;
+  right: 12px;
+  z-index: 10001;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  max-height: calc(100vh - 100px);
+  overflow-y: auto;
+  pointer-events: auto;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(255, 255, 255, 0.15) transparent;
+}
+
+.catansight-panels-container.catansight-hidden {
+  display: none;
+}
+
+.catansight-panels-container::-webkit-scrollbar {
+  width: 4px;
+}
+
+.catansight-panels-container::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.15);
+  border-radius: 2px;
+}
+
+/* ── Side Panel (shared) ── */
+
+.catansight-side-panel {
+  width: 220px;
+  background: rgba(18, 18, 32, 0.92);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 10px;
+  overflow: hidden;
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.4);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+}
+
+.catansight-panel-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 14px;
+  cursor: pointer;
+  user-select: none;
+  -webkit-user-select: none;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+  transition: background 0.15s;
+}
+
+.catansight-panel-header:hover {
+  background: rgba(255, 255, 255, 0.04);
+}
+
+.catansight-panel-title {
+  font-size: 12px;
+  font-weight: 600;
+  color: #c0c0d0;
+  letter-spacing: 0.3px;
+}
+
+.catansight-panel-toggle {
+  font-size: 10px;
+  color: #666;
+  transition: transform 0.2s;
+}
+
+.catansight-panel-body {
+  padding: 10px 14px;
+  transition: max-height 0.2s ease, padding 0.2s ease;
+  max-height: 500px;
+  overflow: hidden;
+}
+
+.catansight-side-panel.catansight-collapsed .catansight-panel-body {
+  max-height: 0;
+  padding-top: 0;
+  padding-bottom: 0;
+}
+
+/* ── Scarcity Panel ── */
+
+.catansight-scarcity-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 0;
+}
+
+.catansight-res-icon {
+  font-size: 13px;
+  width: 18px;
+  text-align: center;
+  flex-shrink: 0;
+}
+
+.catansight-res-name {
+  font-size: 11px;
+  color: #c0c0d0;
+  width: 48px;
+  flex-shrink: 0;
+}
+
+.catansight-bar-track {
+  flex: 1;
+  height: 8px;
+  background: rgba(255, 255, 255, 0.06);
+  border-radius: 4px;
+  overflow: hidden;
+}
+
+.catansight-bar-fill {
+  height: 100%;
+  border-radius: 4px;
+  transition: width 0.3s ease;
+}
+
+.catansight-res-pips {
+  font-size: 11px;
+  font-weight: 600;
+  color: #e0e0e8;
+  width: 20px;
+  text-align: right;
+  flex-shrink: 0;
+}
+
+.catansight-res-label {
+  font-size: 9px;
+  font-weight: 600;
+  padding: 1px 4px;
+  border-radius: 3px;
+  flex-shrink: 0;
+}
+
+.catansight-scarce {
+  color: #fca5a5;
+  background: rgba(239, 68, 68, 0.15);
+}
+
+.catansight-abundant {
+  color: #86efac;
+  background: rgba(34, 197, 94, 0.15);
+}
+
+/* ── Dice Tracker Panel ── */
+
+.catansight-dice-total {
+  font-size: 11px;
+  color: #8888a0;
+  margin-bottom: 8px;
+  text-align: center;
+}
+
+.catansight-dice-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 2px 0;
+}
+
+.catansight-dice-num {
+  font-size: 11px;
+  font-weight: 600;
+  color: #c0c0d0;
+  width: 20px;
+  text-align: right;
+  flex-shrink: 0;
+}
+
+.catansight-dice-bar-track {
+  flex: 1;
+  height: 10px;
+  background: rgba(255, 255, 255, 0.04);
+  border-radius: 5px;
+  overflow: hidden;
+  position: relative;
+}
+
+.catansight-dice-expected {
+  position: absolute;
+  top: 0;
+  left: 0;
+  height: 100%;
+  background: rgba(255, 255, 255, 0.08);
+  border-radius: 5px;
+  border-right: 1px dashed rgba(255, 255, 255, 0.15);
+}
+
+.catansight-dice-actual {
+  position: absolute;
+  top: 0;
+  left: 0;
+  height: 100%;
+  background: #3b82f6;
+  border-radius: 5px;
+  transition: width 0.3s ease;
+}
+
+.catansight-dice-count {
+  font-size: 10px;
+  color: #aaa;
+  width: 20px;
+  text-align: right;
+  flex-shrink: 0;
+}
+
+/* Hot/cold dice numbers */
+.catansight-hot .catansight-dice-actual {
+  background: #22c55e;
+}
+
+.catansight-hot .catansight-dice-num {
+  color: #22c55e;
+}
+
+.catansight-cold .catansight-dice-actual {
+  background: #ef4444;
+}
+
+.catansight-cold .catansight-dice-num {
+  color: #ef4444;
+}
+
+/* ── Resource Income Panel ── */
+
+.catansight-player-row {
+  padding: 6px 0;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.04);
+}
+
+.catansight-player-row:last-child {
+  border-bottom: none;
+}
+
+.catansight-player-name {
+  font-size: 12px;
+  font-weight: 600;
+  color: #e0e0e8;
+  margin-bottom: 2px;
+}
+
+.catansight-player-total {
+  font-weight: 400;
+  color: #8888a0;
+  font-size: 11px;
+}
+
+.catansight-player-resources {
+  font-size: 12px;
+  color: #c0c0d0;
+}
+
+.catansight-no-data {
+  font-size: 11px;
+  color: #666;
+  text-align: center;
+  padding: 8px 0;
+  font-style: italic;
+}
+
+/* ── Notification Toast ── */
+
+.catansight-notification {
+  position: fixed;
+  bottom: 24px;
+  left: 50%;
+  transform: translateX(-50%) translateY(20px);
+  background: rgba(18, 18, 32, 0.95);
+  color: #e0e0e8;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  font-size: 13px;
+  font-weight: 500;
+  padding: 10px 20px;
+  border-radius: 10px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.4);
+  z-index: 10003;
+  opacity: 0;
+  transition: opacity 0.3s ease, transform 0.3s ease;
+  pointer-events: none;
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+}
+
+.catansight-notification.catansight-notification-visible {
+  opacity: 1;
+  transform: translateX(-50%) translateY(0);
+}

@@ -1,0 +1,57 @@
+{
+  "manifest_version": 3,
+  "name": "CatanSight",
+  "version": "0.1.0",
+  "description": "Real-time pip counts, resource scarcity, and strategic overlays for colonist.io",
+  "permissions": ["storage", "scripting"],
+  "host_permissions": ["https://colonist.io/*"],
+  "background": {
+    "service_worker": "background/service-worker.js"
+  },
+  "content_scripts": [
+    {
+      "matches": ["https://colonist.io/*"],
+      "js": [
+        "lib/hex-geometry.js",
+        "content/board-parser.js",
+        "content/pip-calculator.js",
+        "content/overlay-renderer.js",
+        "content/scarcity-analyzer.js",
+        "content/dice-tracker.js",
+        "content/resource-tracker.js",
+        "content/content-script.js"
+      ],
+      "css": ["styles/overlay.css"],
+      "run_at": "document_idle"
+    }
+  ],
+  "action": {
+    "default_popup": "popup/popup.html",
+    "default_icon": {
+      "16": "icons/icon16.png",
+      "48": "icons/icon48.png",
+      "128": "icons/icon128.png"
+    }
+  },
+  "web_accessible_resources": [
+    {
+      "resources": ["content/inject.js"],
+      "matches": ["https://colonist.io/*"]
+    }
+  ],
+  "icons": {
+    "16": "icons/icon16.png",
+    "48": "icons/icon48.png",
+    "128": "icons/icon128.png"
+  },
+  "commands": {
+    "toggle-pips": {
+      "suggested_key": { "default": "Alt+P" },
+      "description": "Toggle pip count overlay"
+    },
+    "toggle-panel": {
+      "suggested_key": { "default": "Alt+S" },
+      "description": "Toggle stats panels"
+    }
+  }
+}
