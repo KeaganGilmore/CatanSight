@@ -1,22 +1,39 @@
 /**
  * CatanSight - WebSocket Interceptor (MAIN world)
- * Uses a non-invasive approach: patches WebSocket.prototype.send
- * and listens on individual instances without replacing the constructor.
+ * Patches WebSocket.prototype to passively observe messages.
+ * Dispatches string messages as-is and binary messages as base64.
  */
 (function() {
   "use strict";
 
   function dispatchToExtension(data) {
     try {
+      let payload, isBinary = false;
+
+      if (typeof data === "string") {
+        payload = data;
+      } else if (data instanceof ArrayBuffer) {
+        // Convert ArrayBuffer to base64 for safe transport via CustomEvent
+        const bytes = new Uint8Array(data);
+        let binary = "";
+        for (let i = 0; i < bytes.length; i++) {
+          binary += String.fromCharCode(bytes[i]);
+        }
+        payload = btoa(binary);
+        isBinary = true;
+      } else {
+        return;
+      }
+
       document.dispatchEvent(new CustomEvent("catansight-ws-data", {
-        detail: { data: data, timestamp: Date.now() }
+        detail: JSON.stringify({ payload, isBinary })
       }));
     } catch (e) {
       // Never break the game
     }
   }
 
-  // Patch the native addEventListener on WebSocket prototype to intercept messages
+  // Patch addEventListener on WebSocket prototype
   const origAddEventListener = WebSocket.prototype.addEventListener;
   WebSocket.prototype.addEventListener = function(type, listener, options) {
     if (type === "message") {

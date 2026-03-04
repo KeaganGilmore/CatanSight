@@ -29,6 +29,7 @@ document.addEventListener("DOMContentLoaded", () => {
   setupToggleListeners();
   setupOpacitySlider();
   setupQuickButtons();
+  setupCalibrateButton();
   checkStatus();
 });
 
@@ -107,6 +108,19 @@ function setupQuickButtons() {
     FEATURE_KEYS.forEach(key => { currentSettings[key] = false; });
     updateUI();
     saveSettings();
+  });
+}
+
+// ── Calibrate Button ──────────────────────────────────────
+
+function setupCalibrateButton() {
+  document.getElementById("btn-calibrate").addEventListener("click", () => {
+    chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
+      if (tabs[0]) {
+        chrome.tabs.sendMessage(tabs[0].id, { type: "toggle-calibration" });
+        window.close();
+      }
+    });
   });
 }
 

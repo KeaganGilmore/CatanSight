@@ -12,10 +12,12 @@
     {
       "matches": ["https://colonist.io/*"],
       "js": [
+        "lib/msgpack.js",
         "lib/hex-geometry.js",
         "content/board-parser.js",
         "content/pip-calculator.js",
         "content/overlay-renderer.js",
+        "content/panel-dragger.js",
         "content/scarcity-analyzer.js",
         "content/dice-tracker.js",
         "content/resource-tracker.js",

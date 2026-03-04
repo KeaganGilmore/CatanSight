@@ -145,17 +145,28 @@ CatanSight.ResourceTracker = {
       <div class="catansight-panel-header" data-panel="resources">
         <span class="catansight-panel-title">Resource Income</span>
         <span class="catansight-panel-toggle">\u25BC</span>
+        <span class="catansight-panel-close">\u00D7</span>
       </div>
       <div class="catansight-panel-body"></div>
     `;
 
     const header = this.panel.querySelector(".catansight-panel-header");
-    header.addEventListener("click", () => {
+    const toggle = header.querySelector(".catansight-panel-toggle");
+    const closeBtn = header.querySelector(".catansight-panel-close");
+
+    toggle.addEventListener("click", (e) => {
+      e.stopPropagation();
       this.collapsed = !this.collapsed;
       this.panel.classList.toggle("catansight-collapsed", this.collapsed);
-      header.querySelector(".catansight-panel-toggle").textContent =
-        this.collapsed ? "\u25B6" : "\u25BC";
+      toggle.textContent = this.collapsed ? "\u25B6" : "\u25BC";
     });
+
+    closeBtn.addEventListener("click", (e) => {
+      e.stopPropagation();
+      this.panel.style.display = "none";
+    });
+
+    CatanSight.PanelDragger.makeDraggable(this.panel, header);
 
     this._getPanelContainer().appendChild(this.panel);
   },

@@ -26,29 +26,31 @@
 .catansight-pip-badge {
   position: absolute;
   transform: translate(-50%, -50%);
-  width: 26px;
-  height: 26px;
+  width: 20px;
+  height: 20px;
   border-radius: 50%;
   display: flex;
   align-items: center;
   justify-content: center;
   font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-  font-size: 11px;
+  font-size: 9px;
   font-weight: 700;
   color: #fff;
-  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.6);
+  text-shadow: 0 1px 1px rgba(0, 0, 0, 0.5);
   pointer-events: auto;
   cursor: default;
-  border: 1.5px solid rgba(255, 255, 255, 0.45);
-  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.35);
-  transition: transform 0.15s ease, box-shadow 0.15s ease;
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.25);
+  transition: transform 0.15s ease, box-shadow 0.15s ease, opacity 0.15s ease;
   user-select: none;
   -webkit-user-select: none;
+  opacity: 0.7;
 }
 
 .catansight-pip-badge:hover {
-  transform: translate(-50%, -50%) scale(1.25);
+  transform: translate(-50%, -50%) scale(1.3);
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.5);
+  opacity: 1;
   z-index: 10;
 }
 
@@ -152,7 +154,7 @@
 
 .catansight-side-panel {
   width: 220px;
-  background: rgba(18, 18, 32, 0.92);
+  background: rgba(18, 18, 32, 0.88);
   border: 1px solid rgba(255, 255, 255, 0.08);
   border-radius: 10px;
   overflow: hidden;
@@ -162,16 +164,31 @@
   font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
 }
 
+/* When dragged out of container, panels become independently positioned */
+.catansight-side-panel.catansight-dragging {
+  opacity: 0.85;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.6);
+}
+
+.catansight-side-panel.catansight-free {
+  position: fixed;
+  z-index: 10001;
+}
+
 .catansight-panel-header {
   display: flex;
   align-items: center;
-  justify-content: space-between;
-  padding: 10px 14px;
-  cursor: pointer;
+  gap: 6px;
+  padding: 8px 10px;
+  cursor: grab;
   user-select: none;
   -webkit-user-select: none;
   border-bottom: 1px solid rgba(255, 255, 255, 0.06);
   transition: background 0.15s;
+}
+
+.catansight-panel-header:active {
+  cursor: grabbing;
 }
 
 .catansight-panel-header:hover {
@@ -183,12 +200,27 @@
   font-weight: 600;
   color: #c0c0d0;
   letter-spacing: 0.3px;
+  flex: 1;
 }
 
 .catansight-panel-toggle {
   font-size: 10px;
   color: #666;
   transition: transform 0.2s;
+  cursor: pointer;
+}
+
+.catansight-panel-close {
+  font-size: 14px;
+  color: #666;
+  cursor: pointer;
+  line-height: 1;
+  padding: 0 2px;
+  transition: color 0.15s;
+}
+
+.catansight-panel-close:hover {
+  color: #ef4444;
 }
 
 .catansight-panel-body {
@@ -411,4 +443,137 @@
 .catansight-notification.catansight-notification-visible {
   opacity: 1;
   transform: translateX(-50%) translateY(0);
+}
+
+/* ── Calibration Panel ── */
+
+.catansight-calibration-panel {
+  position: fixed;
+  top: 80px;
+  left: 12px;
+  z-index: 10005;
+  width: 240px;
+  background: rgba(18, 18, 32, 0.95);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 10px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.6);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  pointer-events: auto;
+}
+
+.catansight-cal-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 14px;
+  cursor: grab;
+  user-select: none;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  font-size: 12px;
+  font-weight: 600;
+  color: #e0e0e8;
+}
+
+.catansight-cal-header:active {
+  cursor: grabbing;
+}
+
+.catansight-cal-close {
+  font-size: 16px;
+  color: #888;
+  cursor: pointer;
+  line-height: 1;
+}
+
+.catansight-cal-close:hover {
+  color: #ef4444;
+}
+
+.catansight-cal-body {
+  padding: 12px 14px;
+}
+
+.catansight-cal-body label {
+  display: block;
+  margin-bottom: 10px;
+}
+
+.catansight-cal-label {
+  display: flex;
+  justify-content: space-between;
+  font-size: 11px;
+  color: #a0a0b8;
+  margin-bottom: 4px;
+}
+
+.catansight-cal-value {
+  color: #e0e0e8;
+  font-weight: 600;
+}
+
+.catansight-cal-body input[type="range"] {
+  width: 100%;
+  height: 4px;
+  -webkit-appearance: none;
+  appearance: none;
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 2px;
+  outline: none;
+  cursor: pointer;
+}
+
+.catansight-cal-body input[type="range"]::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  background: #3b82f6;
+  border: 2px solid rgba(255, 255, 255, 0.3);
+  cursor: pointer;
+}
+
+.catansight-cal-body input[type="range"]::-moz-range-thumb {
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  background: #3b82f6;
+  border: 2px solid rgba(255, 255, 255, 0.3);
+  cursor: pointer;
+}
+
+.catansight-cal-buttons {
+  display: flex;
+  gap: 8px;
+  margin-top: 14px;
+}
+
+.catansight-cal-btn {
+  flex: 1;
+  padding: 6px 0;
+  border: none;
+  border-radius: 6px;
+  font-size: 11px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+
+.catansight-cal-save {
+  background: #3b82f6;
+  color: #fff;
+}
+
+.catansight-cal-save:hover {
+  background: #2563eb;
+}
+
+.catansight-cal-reset {
+  background: rgba(255, 255, 255, 0.08);
+  color: #c0c0d0;
+}
+
+.catansight-cal-reset:hover {
+  background: rgba(255, 255, 255, 0.14);
 }

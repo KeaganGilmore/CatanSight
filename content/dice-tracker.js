@@ -25,13 +25,18 @@ CatanSight.DiceTracker = {
 
   _waitForGameLog() {
     const check = () => {
-      const el = document.getElementById("game-log-text");
+      // Try multiple selectors for the game log
+      const el = document.getElementById("game-log-text") ||
+                 document.querySelector("[class*='game-log']") ||
+                 document.querySelector("[class*='gameLog']") ||
+                 document.querySelector("[class*='chat-log']");
       if (el) {
+        console.log("[CatanSight] Game log found:", el.id || el.className);
         this._processExisting(el);
         this.observer = new MutationObserver(() => this._processNew(el));
         this.observer.observe(el, { childList: true, subtree: true });
       } else {
-        setTimeout(check, 1000);
+        setTimeout(check, 2000);
       }
     };
     check();
@@ -66,14 +71,27 @@ CatanSight.DiceTracker = {
       }
     }
 
-    // Strategy 2: Look for "rolled" text with a number
+    // Strategy 2: Look for "rolled" or dice-related text with a number
     const text = messageEl.textContent || "";
-    const match = text.match(/rolled?\s+(?:a\s+)?(\d{1,2})/i);
+    const match = text.match(/rolled?\s+(?:a\s+)?(\d{1,2})/i) ||
+                  text.match(/dice[:\s]+(\d{1,2})/i) ||
+                  text.match(/got\s+(\d{1,2})/i);
     if (match) {
       const roll = parseInt(match[1], 10);
       if (roll >= 2 && roll <= 12) {
         this.rolls.push(roll);
         this.histogram[roll]++;
+        return;
+      }
+    }
+
+    // Strategy 2b: Look for two single-digit numbers that look like dice
+    const diceTextMatch = text.match(/(\d)\s*[+&,]\s*(\d)/);
+    if (diceTextMatch) {
+      const total = parseInt(diceTextMatch[1]) + parseInt(diceTextMatch[2]);
+      if (total >= 2 && total <= 12) {
+        this.rolls.push(total);
+        this.histogram[total]++;
         return;
       }
     }
@@ -154,17 +172,31 @@ CatanSight.DiceTracker = {
       <div class="catansight-panel-header" data-panel="dice">
         <span class="catansight-panel-title">Dice Tracker</span>
         <span class="catansight-panel-toggle">\u25BC</span>
+        <span class="catansight-panel-close">\u00D7</span>
       </div>
       <div class="catansight-panel-body"></div>
     `;
 
     const header = this.panel.querySelector(".catansight-panel-header");
-    header.addEventListener("click", () => {
+    const toggle = header.querySelector(".catansight-panel-toggle");
+    const closeBtn = header.querySelector(".catansight-panel-close");
+
+    // Collapse toggle
+    toggle.addEventListener("click", (e) => {
+      e.stopPropagation();
       this.collapsed = !this.collapsed;
       this.panel.classList.toggle("catansight-collapsed", this.collapsed);
-      header.querySelector(".catansight-panel-toggle").textContent =
-        this.collapsed ? "\u25B6" : "\u25BC";
+      toggle.textContent = this.collapsed ? "\u25B6" : "\u25BC";
     });
+
+    // Close button
+    closeBtn.addEventListener("click", (e) => {
+      e.stopPropagation();
+      this.panel.style.display = "none";
+    });
+
+    // Dragging
+    CatanSight.PanelDragger.makeDraggable(this.panel, header);
 
     this._getPanelContainer().appendChild(this.panel);
   },

@@ -76,18 +76,31 @@ CatanSight.ScarcityAnalyzer = {
       <div class="catansight-panel-header" data-panel="scarcity">
         <span class="catansight-panel-title">Resource Scarcity</span>
         <span class="catansight-panel-toggle">\u25BC</span>
+        <span class="catansight-panel-close">\u00D7</span>
       </div>
       <div class="catansight-panel-body"></div>
     `;
 
-    // Collapse toggle
     const header = this.panel.querySelector(".catansight-panel-header");
-    header.addEventListener("click", () => {
+    const toggle = header.querySelector(".catansight-panel-toggle");
+    const closeBtn = header.querySelector(".catansight-panel-close");
+
+    // Collapse toggle (click on toggle arrow)
+    toggle.addEventListener("click", (e) => {
+      e.stopPropagation();
       this.collapsed = !this.collapsed;
       this.panel.classList.toggle("catansight-collapsed", this.collapsed);
-      header.querySelector(".catansight-panel-toggle").textContent =
-        this.collapsed ? "\u25B6" : "\u25BC";
+      toggle.textContent = this.collapsed ? "\u25B6" : "\u25BC";
     });
+
+    // Close button
+    closeBtn.addEventListener("click", (e) => {
+      e.stopPropagation();
+      this.panel.style.display = "none";
+    });
+
+    // Dragging
+    CatanSight.PanelDragger.makeDraggable(this.panel, header);
 
     this._getPanelContainer().appendChild(this.panel);
   },

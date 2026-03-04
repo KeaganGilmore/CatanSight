@@ -3,40 +3,46 @@
  * Renders pip count badges and tooltips over the colonist.io canvas.
  */
 
+if (!window.CatanSight) window.CatanSight = {};
+
 CatanSight.OverlayRenderer = {
   container: null,
   tooltipEl: null,
+  calibrationPanel: null,
   badges: [],
   visible: true,
   enabled: true,
   resizeObserver: null,
   currentIntersections: null,
-  opacity: 0.9,
+  opacity: 0.75,
+  _cachedCanvas: null,
+
+  // Calibration parameters
+  offsetX: 0,
+  offsetY: 0,
+  boardFraction: 0.79,
+  centerRatioX: 0.50,
+  centerRatioY: 0.50,
 
   init() {
-    // Create overlay container
     this.container = document.createElement("div");
     this.container.id = "catansight-overlay";
     this.container.className = "catansight-overlay";
     document.body.appendChild(this.container);
 
-    // Create tooltip element
     this.tooltipEl = document.createElement("div");
     this.tooltipEl.className = "catansight-tooltip";
     this.tooltipEl.style.display = "none";
     document.body.appendChild(this.tooltipEl);
 
-    // Listen for resize
     this._setupResizeObserver();
+    this._loadCalibration();
   },
 
-  /**
-   * Render pip badges at all intersections.
-   */
   render(enrichedIntersections) {
     if (!this.container) this.init();
     this.currentIntersections = enrichedIntersections;
-    this._updateBadges();
+    setTimeout(() => this._updateBadges(), 500);
   },
 
   _updateBadges() {
@@ -45,27 +51,31 @@ CatanSight.OverlayRenderer = {
 
     const canvas = this._findCanvas();
     if (!canvas) {
-      console.warn("[CatanSight] Canvas not found, retrying in 1s...");
+      console.warn("[CatanSight] Canvas not found, retrying...");
+      setTimeout(() => this._updateBadges(), 1000);
+      return;
+    }
+
+    const rect = canvas.getBoundingClientRect();
+    if (rect.width < 100 || rect.height < 100) {
       setTimeout(() => this._updateBadges(), 1000);
       return;
     }
 
     const transform = this._computeTransform(canvas);
-    this.container.style.opacity = this.opacity;
+    this.container.style.opacity = String(this.opacity);
 
-    this.currentIntersections.forEach((inter, idx) => {
-      if (inter.pips === 0) return; // Skip empty intersections
+    this.currentIntersections.forEach((inter) => {
+      if (inter.pips === 0) return;
 
       const badge = document.createElement("div");
       badge.className = `catansight-pip-badge catansight-tier-${inter.tier}`;
       badge.textContent = inter.pips;
-      badge.dataset.index = idx;
 
       const pos = transform(inter.x, inter.y);
       badge.style.left = `${pos.x}px`;
       badge.style.top = `${pos.y}px`;
 
-      // Hover tooltip
       badge.addEventListener("mouseenter", (e) => this._showTooltip(e, inter));
       badge.addEventListener("mouseleave", () => this._hideTooltip());
 
@@ -74,27 +84,49 @@ CatanSight.OverlayRenderer = {
     });
   },
 
-  /**
-   * Find the game canvas element.
-   */
   _findCanvas() {
-    // colonist.io renders with PIXI.js — try several selectors
-    return document.querySelector("#game-canvas canvas") ||
-           document.querySelector(".game-canvas canvas") ||
-           document.querySelector("canvas[data-engine]") ||
-           document.querySelector("canvas");
+    if (this._cachedCanvas && document.contains(this._cachedCanvas)) {
+      return this._cachedCanvas;
+    }
+
+    const allCanvas = document.querySelectorAll("canvas");
+    if (allCanvas.length === 0) return null;
+
+    const gameCanvas = document.querySelector("#game-canvas");
+    if (gameCanvas) {
+      const c = gameCanvas.querySelector("canvas") ||
+                (gameCanvas.tagName === "CANVAS" ? gameCanvas : null);
+      if (c) {
+        this._cachedCanvas = c;
+        return c;
+      }
+    }
+
+    const selectors = [
+      ".game-canvas", "[class*='gameCanvas']", "[class*='game-board']",
+      "[class*='GameCanvas']", "[class*='pixi']", "[class*='board']"
+    ];
+    for (const sel of selectors) {
+      const el = document.querySelector(sel);
+      if (el) {
+        const c = el.querySelector("canvas") || (el.tagName === "CANVAS" ? el : null);
+        if (c) { this._cachedCanvas = c; return c; }
+      }
+    }
+
+    const sorted = Array.from(allCanvas)
+      .map(c => ({ el: c, area: c.getBoundingClientRect().width * c.getBoundingClientRect().height }))
+      .filter(c => c.area > 10000)
+      .sort((a, b) => b.area - a.area);
+
+    if (sorted.length >= 2) { this._cachedCanvas = sorted[1].el; return sorted[1].el; }
+    if (sorted.length >= 1) { this._cachedCanvas = sorted[0].el; return sorted[0].el; }
+    return null;
   },
 
-  /**
-   * Compute the transform function from normalized hex coords to screen pixels.
-   */
   _computeTransform(canvas) {
     const rect = canvas.getBoundingClientRect();
 
-    // The hex geometry spans approximately:
-    // X: from -3 to +3 (in hex size units) => total ~6 units
-    // Y: from -3.46 to +3.46 => total ~6.93 units
-    // We use the actual computed bounds from the intersections for accuracy
     let minX = Infinity, maxX = -Infinity;
     let minY = Infinity, maxY = -Infinity;
     this.currentIntersections.forEach(inter => {
@@ -109,29 +141,174 @@ CatanSight.OverlayRenderer = {
     const centerX = (minX + maxX) / 2;
     const centerY = (minY + maxY) / 2;
 
-    // Scale to fit canvas with padding
-    const padding = 0.15; // 15% padding on each side
-    const usableWidth = rect.width * (1 - 2 * padding);
-    const usableHeight = rect.height * (1 - 2 * padding);
+    const usableWidth = rect.width * this.boardFraction;
+    const usableHeight = rect.height * this.boardFraction;
     const scale = Math.min(usableWidth / boardWidth, usableHeight / boardHeight);
 
-    const offsetX = rect.left + rect.width / 2;
-    const offsetY = rect.top + rect.height / 2;
+    const canvasCenterX = rect.left + rect.width * this.centerRatioX + this.offsetX;
+    const canvasCenterY = rect.top + rect.height * this.centerRatioY + this.offsetY;
 
     return (nx, ny) => ({
-      x: offsetX + (nx - centerX) * scale,
-      y: offsetY + (ny - centerY) * scale
+      x: canvasCenterX + (nx - centerX) * scale,
+      y: canvasCenterY + (ny - centerY) * scale
     });
   },
 
-  /**
-   * Show tooltip with pip breakdown.
-   */
+  // ── Calibration Panel ──────────────────────────────────
+
+  toggleCalibration() {
+    if (this.calibrationPanel) {
+      this._closeCalibration();
+    } else {
+      this._openCalibration();
+    }
+  },
+
+  _openCalibration() {
+    if (this.calibrationPanel) return;
+
+    const panel = document.createElement("div");
+    panel.className = "catansight-calibration-panel";
+    panel.innerHTML = `
+      <div class="catansight-cal-header">
+        <span>Overlay Calibration</span>
+        <span class="catansight-cal-close">\u00D7</span>
+      </div>
+      <div class="catansight-cal-body">
+        <label>
+          <span class="catansight-cal-label">Scale <span class="catansight-cal-value" data-for="boardFraction">${this.boardFraction.toFixed(2)}</span></span>
+          <input type="range" data-param="boardFraction" min="0.30" max="1.20" step="0.01" value="${this.boardFraction}">
+        </label>
+        <label>
+          <span class="catansight-cal-label">Offset X <span class="catansight-cal-value" data-for="offsetX">${this.offsetX}</span>px</span>
+          <input type="range" data-param="offsetX" min="-200" max="200" step="1" value="${this.offsetX}">
+        </label>
+        <label>
+          <span class="catansight-cal-label">Offset Y <span class="catansight-cal-value" data-for="offsetY">${this.offsetY}</span>px</span>
+          <input type="range" data-param="offsetY" min="-200" max="200" step="1" value="${this.offsetY}">
+        </label>
+        <label>
+          <span class="catansight-cal-label">Center X <span class="catansight-cal-value" data-for="centerRatioX">${this.centerRatioX.toFixed(2)}</span></span>
+          <input type="range" data-param="centerRatioX" min="0.30" max="0.70" step="0.01" value="${this.centerRatioX}">
+        </label>
+        <label>
+          <span class="catansight-cal-label">Center Y <span class="catansight-cal-value" data-for="centerRatioY">${this.centerRatioY.toFixed(2)}</span></span>
+          <input type="range" data-param="centerRatioY" min="0.30" max="0.70" step="0.01" value="${this.centerRatioY}">
+        </label>
+        <div class="catansight-cal-buttons">
+          <button class="catansight-cal-btn catansight-cal-save">Save</button>
+          <button class="catansight-cal-btn catansight-cal-reset">Reset</button>
+        </div>
+      </div>
+    `;
+
+    // Wire up sliders for live preview
+    panel.querySelectorAll("input[type=range]").forEach(slider => {
+      slider.addEventListener("input", () => {
+        const param = slider.dataset.param;
+        const val = parseFloat(slider.value);
+        this[param] = val;
+
+        // Update displayed value
+        const display = panel.querySelector(`.catansight-cal-value[data-for="${param}"]`);
+        if (display) {
+          display.textContent = Number.isInteger(val) ? val : val.toFixed(2);
+        }
+
+        this._updateBadges();
+      });
+    });
+
+    // Close button
+    panel.querySelector(".catansight-cal-close").addEventListener("click", () => {
+      this._closeCalibration();
+    });
+
+    // Save button
+    panel.querySelector(".catansight-cal-save").addEventListener("click", () => {
+      this._saveCalibration();
+      this._closeCalibration();
+      console.log("[CatanSight] Calibration saved:", {
+        boardFraction: this.boardFraction,
+        offsetX: this.offsetX, offsetY: this.offsetY,
+        centerRatioX: this.centerRatioX, centerRatioY: this.centerRatioY
+      });
+    });
+
+    // Reset button
+    panel.querySelector(".catansight-cal-reset").addEventListener("click", () => {
+      this.boardFraction = 0.79;
+      this.offsetX = 0;
+      this.offsetY = 0;
+      this.centerRatioX = 0.50;
+      this.centerRatioY = 0.50;
+      // Update all sliders
+      panel.querySelectorAll("input[type=range]").forEach(s => {
+        s.value = this[s.dataset.param];
+        const d = panel.querySelector(`.catansight-cal-value[data-for="${s.dataset.param}"]`);
+        if (d) {
+          const v = this[s.dataset.param];
+          d.textContent = Number.isInteger(v) ? v : v.toFixed(2);
+        }
+      });
+      this._updateBadges();
+    });
+
+    // Make panel draggable
+    CatanSight.PanelDragger.makeDraggable(panel, panel.querySelector(".catansight-cal-header"));
+
+    document.body.appendChild(panel);
+    this.calibrationPanel = panel;
+  },
+
+  _closeCalibration() {
+    if (this.calibrationPanel) {
+      this.calibrationPanel.remove();
+      this.calibrationPanel = null;
+    }
+  },
+
+  _saveCalibration() {
+    try {
+      chrome.storage.local.set({
+        catansightCalibration: {
+          version: 3,
+          offsetX: this.offsetX,
+          offsetY: this.offsetY,
+          boardFraction: this.boardFraction,
+          centerRatioX: this.centerRatioX,
+          centerRatioY: this.centerRatioY
+        }
+      });
+    } catch (e) { /* ignore */ }
+  },
+
+  _loadCalibration() {
+    try {
+      chrome.storage.local.get("catansightCalibration", (result) => {
+        if (result.catansightCalibration) {
+          const cal = result.catansightCalibration;
+          if (cal.version === 3) {
+            this.offsetX = cal.offsetX || 0;
+            this.offsetY = cal.offsetY || 0;
+            if (cal.boardFraction) this.boardFraction = cal.boardFraction;
+            if (cal.centerRatioX !== undefined) this.centerRatioX = cal.centerRatioX;
+            if (cal.centerRatioY !== undefined) this.centerRatioY = cal.centerRatioY;
+            console.log("[CatanSight] Loaded calibration:", cal);
+          } else {
+            chrome.storage.local.remove("catansightCalibration");
+          }
+        }
+      });
+    } catch (e) { /* ignore */ }
+  },
+
+  // ── Tooltip ────────────────────────────────────────────
+
   _showTooltip(event, inter) {
     const lines = [];
     lines.push(`<div class="catansight-tooltip-total">${inter.pips} pips (${inter.probability}%)</div>`);
     lines.push('<div class="catansight-tooltip-divider"></div>');
-
     inter.resources.forEach(r => {
       const resIcon = this._resourceEmoji(r.resource);
       lines.push(
@@ -142,12 +319,10 @@ CatanSight.OverlayRenderer = {
     this.tooltipEl.innerHTML = lines.join("");
     this.tooltipEl.style.display = "block";
 
-    // Position tooltip near the badge
     const badgeRect = event.target.getBoundingClientRect();
     this.tooltipEl.style.left = `${badgeRect.right + 8}px`;
     this.tooltipEl.style.top = `${badgeRect.top - 10}px`;
 
-    // Keep tooltip in viewport
     requestAnimationFrame(() => {
       const ttRect = this.tooltipEl.getBoundingClientRect();
       if (ttRect.right > window.innerWidth - 10) {
@@ -164,28 +339,28 @@ CatanSight.OverlayRenderer = {
   },
 
   _resourceEmoji(resource) {
-    const map = {
-      lumber: "\u{1F332}", grain: "\u{1F33E}", wool: "\u{1F411}",
-      ore: "\u{26F0}\uFE0F", brick: "\u{1F9F1}"
-    };
-    return map[resource] || "";
+    return { lumber: "\u{1F332}", grain: "\u{1F33E}", wool: "\u{1F411}", ore: "\u{26F0}\uFE0F", brick: "\u{1F9F1}" }[resource] || "";
   },
 
   _capitalize(str) {
     return str.charAt(0).toUpperCase() + str.slice(1);
   },
 
-  /**
-   * Setup resize observer to reposition badges when canvas resizes.
-   */
+  // ── Resize / Toggle / Lifecycle ────────────────────────
+
   _setupResizeObserver() {
     let debounceTimer = null;
-    this.resizeObserver = new ResizeObserver(() => {
+    const handler = () => {
       clearTimeout(debounceTimer);
-      debounceTimer = setTimeout(() => this._updateBadges(), 150);
-    });
+      debounceTimer = setTimeout(() => {
+        this._cachedCanvas = null;
+        this._updateBadges();
+      }, 200);
+    };
 
-    // Observe document body for layout changes; will observe canvas once found
+    this.resizeObserver = new ResizeObserver(handler);
+    window.addEventListener("resize", handler);
+
     const tryObserveCanvas = () => {
       const canvas = this._findCanvas();
       if (canvas) {
@@ -195,17 +370,8 @@ CatanSight.OverlayRenderer = {
       }
     };
     tryObserveCanvas();
-
-    // Also handle window resize
-    window.addEventListener("resize", () => {
-      clearTimeout(debounceTimer);
-      debounceTimer = setTimeout(() => this._updateBadges(), 150);
-    });
   },
 
-  /**
-   * Toggle overlay visibility.
-   */
   toggle() {
     this.visible = !this.visible;
     if (this.container) {
@@ -213,9 +379,6 @@ CatanSight.OverlayRenderer = {
     }
   },
 
-  /**
-   * Enable/disable the overlay module.
-   */
   setEnabled(enabled) {
     this.enabled = enabled;
     if (!enabled) {
@@ -227,19 +390,11 @@ CatanSight.OverlayRenderer = {
     }
   },
 
-  /**
-   * Update global opacity.
-   */
   setOpacity(value) {
     this.opacity = value;
-    if (this.container) {
-      this.container.style.opacity = value;
-    }
+    if (this.container) this.container.style.opacity = value;
   },
 
-  /**
-   * Remove all badges from the DOM.
-   */
   clear() {
     if (this.container) this.container.innerHTML = "";
     this.badges = [];
@@ -247,6 +402,7 @@ CatanSight.OverlayRenderer = {
 
   destroy() {
     this.clear();
+    this._closeCalibration();
     if (this.container) this.container.remove();
     if (this.tooltipEl) this.tooltipEl.remove();
     if (this.resizeObserver) this.resizeObserver.disconnect();

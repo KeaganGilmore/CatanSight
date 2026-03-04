@@ -53,11 +53,13 @@
       CatanSight.OverlayRenderer.toggle();
     }
     if (message.type === "toggle-panel") {
-      // Toggle all side panels
       const panels = document.getElementById("catansight-panels");
       if (panels) {
         panels.classList.toggle("catansight-hidden");
       }
+    }
+    if (message.type === "toggle-calibration") {
+      CatanSight.OverlayRenderer.toggleCalibration();
     }
   });
 
@@ -71,13 +73,44 @@
 
   // ── WebSocket Message Router ─────────────────────────────
 
+  let wsMessageCount = 0;
   document.addEventListener("catansight-ws-data", (event) => {
-    const { data } = event.detail;
+    wsMessageCount++;
+
     try {
-      const message = typeof data === "string" ? JSON.parse(data) : data;
+      const envelope = JSON.parse(event.detail);
+      let message;
+
+      if (envelope.isBinary) {
+        // Decode base64 back to ArrayBuffer, then decode MessagePack
+        const binary = atob(envelope.payload);
+        const bytes = new Uint8Array(binary.length);
+        for (let i = 0; i < binary.length; i++) {
+          bytes[i] = binary.charCodeAt(i);
+        }
+        message = CatanSight.MsgPack.decode(bytes.buffer);
+      } else {
+        message = JSON.parse(envelope.payload);
+      }
+
+      // Debug: log first 30 messages with stringified payload
+      if (wsMessageCount <= 30) {
+        try {
+          const t = message?.data?.type;
+          const p = message?.data?.payload;
+          const s = JSON.stringify(p);
+          console.log(`[CatanSight WS #${wsMessageCount}] type=${t} len=${s?.length}`, s?.substring(0, 800));
+        } catch(ex) {
+          console.log(`[CatanSight WS #${wsMessageCount}]`, message);
+        }
+      }
+
       routeMessage(message);
     } catch (e) {
-      // Binary or non-JSON message — skip
+      // Decode error — skip
+      if (wsMessageCount <= 30) {
+        console.warn(`[CatanSight WS #${wsMessageCount}] decode error:`, e.message);
+      }
     }
   });
 
@@ -100,19 +133,49 @@
     tryExtractDiceRoll(message);
   }
 
+  let lastDice1 = null, lastDice2 = null;
+  let diceReady = false; // tracks when diceThrown goes false→true
+
   function tryExtractDiceRoll(msg) {
-    const data = msg.payload || msg.data || msg;
-    // Look for dice roll values in various message formats
-    const roll = data.diceRoll || data.dice || data.roll ||
-                 data.diceTotal || data.diceValue;
-    if (typeof roll === "number" && roll >= 2 && roll <= 12) {
-      CatanSight.DiceTracker.addRollFromWS(roll);
-    }
-    // Also check for two separate dice values
-    const d1 = data.dice1 || data.die1;
-    const d2 = data.dice2 || data.die2;
-    if (typeof d1 === "number" && typeof d2 === "number") {
-      CatanSight.DiceTracker.addRollFromWS(d1 + d2);
+    const payload = msg.data?.payload;
+    if (!payload || typeof payload !== "object") return;
+
+    // Search for dice values at multiple levels, including diff (type=91 updates)
+    const candidates = [
+      payload.diff?.diceState,           // type=91 incremental updates
+      payload.gameState?.diceState,       // type=4 full game state
+      payload.diceState,
+      payload.diff,
+      payload
+    ];
+
+    for (const obj of candidates) {
+      if (!obj || typeof obj !== "object") continue;
+
+      // Check if diceThrown changed to false (reset) — prepare for next roll
+      if (obj.diceThrown === false) {
+        diceReady = true;
+        return;
+      }
+
+      const d1 = obj.dice1;
+      const d2 = obj.dice2;
+      if (typeof d1 === "number" && typeof d2 === "number" &&
+          d1 >= 1 && d1 <= 6 && d2 >= 1 && d2 <= 6) {
+        // Record if dice values changed OR if we saw a diceThrown:false reset
+        if (d1 !== lastDice1 || d2 !== lastDice2 || diceReady) {
+          lastDice1 = d1;
+          lastDice2 = d2;
+          diceReady = false;
+          // Only record if diceThrown is true (or not specified)
+          const thrown = obj.diceThrown ?? true;
+          if (thrown !== false) {
+            console.log("[CatanSight] Dice roll:", d1, "+", d2, "=", d1 + d2);
+            CatanSight.DiceTracker.addRollFromWS(d1 + d2);
+          }
+        }
+        return;
+      }
     }
   }
 
@@ -121,8 +184,9 @@
   function onBoardParsed(board) {
     console.log("[CatanSight] Board state received:", board);
 
-    // Build hex geometry
-    intersections = CatanSight.HexGeometry.buildIntersections(1);
+    // Build hex geometry from actual game tile positions
+    intersections = CatanSight.HexGeometry.buildIntersectionsFromHexes(board.hexes, 1);
+    console.log("[CatanSight] Computed", intersections.length, "intersections");
 
     // Calculate pip values
     enrichedIntersections = CatanSight.PipCalculator.calculate(
