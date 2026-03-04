@@ -1,61 +1,56 @@
 /**
  * CatanSight - WebSocket Interceptor (MAIN world)
- * Monkey-patches WebSocket to capture colonist.io game messages.
- * This runs in the page context, NOT the extension isolated world.
+ * Uses a non-invasive approach: patches WebSocket.prototype.send
+ * and listens on individual instances without replacing the constructor.
  */
 (function() {
   "use strict";
 
-  const OriginalWebSocket = window.WebSocket;
-
-  function dispatchToExtension(data, url) {
+  function dispatchToExtension(data) {
     try {
       document.dispatchEvent(new CustomEvent("catansight-ws-data", {
-        detail: { data: data, url: url, timestamp: Date.now() }
+        detail: { data: data, timestamp: Date.now() }
       }));
     } catch (e) {
       // Never break the game
     }
   }
 
-  window.WebSocket = function(...args) {
-    const ws = new OriginalWebSocket(...args);
-    const wsUrl = args[0] || "";
-
-    // Intercept messages via addEventListener
-    const origAddEventListener = ws.addEventListener.bind(ws);
-    ws.addEventListener = function(type, listener, options) {
-      if (type === "message") {
-        const wrapped = function(event) {
-          dispatchToExtension(event.data, wsUrl);
-          return listener.call(ws, event);
-        };
-        return origAddEventListener(type, wrapped, options);
-      }
-      return origAddEventListener(type, listener, options);
-    };
-
-    // Intercept messages via onmessage property
-    let _onmessage = null;
-    Object.defineProperty(ws, "onmessage", {
-      get: () => _onmessage,
-      set: (handler) => {
-        _onmessage = function(event) {
-          dispatchToExtension(event.data, wsUrl);
-          return handler.call(ws, event);
-        };
-      }
-    });
-
-    return ws;
+  // Patch the native addEventListener on WebSocket prototype to intercept messages
+  const origAddEventListener = WebSocket.prototype.addEventListener;
+  WebSocket.prototype.addEventListener = function(type, listener, options) {
+    if (type === "message") {
+      const ws = this;
+      const wrapped = function(event) {
+        dispatchToExtension(event.data);
+        return listener.call(ws, event);
+      };
+      return origAddEventListener.call(this, type, wrapped, options);
+    }
+    return origAddEventListener.call(this, type, listener, options);
   };
 
-  // Preserve WebSocket statics and prototype
-  window.WebSocket.prototype = OriginalWebSocket.prototype;
-  window.WebSocket.CONNECTING = OriginalWebSocket.CONNECTING;
-  window.WebSocket.OPEN = OriginalWebSocket.OPEN;
-  window.WebSocket.CLOSING = OriginalWebSocket.CLOSING;
-  window.WebSocket.CLOSED = OriginalWebSocket.CLOSED;
+  // Patch onmessage property on the prototype
+  const origOnMessageDesc = Object.getOwnPropertyDescriptor(WebSocket.prototype, "onmessage");
+  if (origOnMessageDesc) {
+    Object.defineProperty(WebSocket.prototype, "onmessage", {
+      get: origOnMessageDesc.get,
+      set: function(handler) {
+        if (typeof handler === "function") {
+          const ws = this;
+          const wrapped = function(event) {
+            dispatchToExtension(event.data);
+            return handler.call(ws, event);
+          };
+          origOnMessageDesc.set.call(this, wrapped);
+        } else {
+          origOnMessageDesc.set.call(this, handler);
+        }
+      },
+      configurable: true,
+      enumerable: true
+    });
+  }
 
   console.log("[CatanSight] WebSocket interceptor active");
 })();
